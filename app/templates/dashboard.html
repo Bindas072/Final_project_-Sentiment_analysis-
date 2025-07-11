@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Sentiment Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      padding: 20px;
+      margin: 0;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    form {
+      margin: 20px auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    input[type="text"] {
+      width: 400px;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px 0 0 4px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 0 4px 4px 0;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #latest-feedback-container {
+      width: 60%;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .sentiment {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .feedback-text {
+      font-size: 20px;
+      margin-top: 15px;
+      color: #444;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Customer Feedback</h1>
+
+  <form id="feedbackForm" autocomplete="off">
+    <input type="text" name="feedback" placeholder="Enter your feedback..." required>
+    <button type="submit">Submit</button>
+  </form>
+
+  <!-- Latest feedback display only -->
+  <div id="latest-feedback-container" style="display: none;">
+    <div class="feedback-text" id="feedbackText"></div>
+    <div class="sentiment" id="sentimentResult"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('feedbackForm');
+    const feedbackContainer = document.getElementById('latest-feedback-container');
+    const feedbackTextEl = document.getElementById('feedbackText');
+    const sentimentEl = document.getElementById('sentimentResult');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const feedbackText = formData.get('feedback');
+
+      const response = await fetch('/submit', {
+        method: 'POST',
+        body: formData
+      });
+
+      const res = await response.json();
+      if (res.status === "sent") {
+        setTimeout(fetchLatestFeedback, 3000);
+      }
+
+      form.reset();
+    });
+
+    async function fetchLatestFeedback() {
+      const res = await fetch('/data');
+      const data = await res.json();
+      if (data.length === 0) return;
+
+      const latest = data[data.length - 1];
+      const feedbackText = latest.text;
+      const sentiment = latest.prediction.toLowerCase();
+
+      let color = '', emoji = '', label = '';
+      if (sentiment === 'positive') {
+        color = 'green'; emoji = '😊'; label = 'Positive';
+      } else if (sentiment === 'neutral') {
+        color = 'gray'; emoji = '😐'; label = 'Neutral';
+      } else if (sentiment === 'negative') {
+        color = 'red'; emoji = '😞'; label = 'Negative';
+      }
+
+      feedbackTextEl.textContent = `${feedbackText}`;
+      sentimentEl.innerHTML = `<span style="color:${color}">${label}</span> ${emoji}`;
+      feedbackContainer.style.display = 'block';
+    }
+
+    // Optional: refresh automatically
+    setInterval(fetchLatestFeedback, 5000);
+  </script>
+
+</body>
+</html>
